@@ -1,0 +1,21 @@
+version: "2"
+
+services:
+  mongo:
+    container_name: mongo
+    image: mongo
+    ports:
+      - "27017:27017"
+  actscont:
+    container_name: actscont
+    restart: always
+    build: ./acts
+    image: acts:latest
+    ports:
+      - "80:80"
+    links:
+      - mongo
+    depends_on:
+      - mongo
+    environment:
+      WAIT_HOSTS: mongo:27017

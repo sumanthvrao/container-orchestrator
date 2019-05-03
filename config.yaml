@@ -1,0 +1,33 @@
+# This configuration file is responsible for setting up the load balancer.
+# The attributes and formats of it have been defined below -
+#   1. metric: What you will monitor (Memory, no_of_req, etc)
+#   2. min_instances: Min threshold for no of containers.
+#   3. max_instances: Max threshold for no of containers.
+#   4. monitor_time: Time duration between 2 polls
+#   5. custom: If this is set to True, a custom_true_scale has been given
+#              else, custom_false_scale value is read.
+#   6. custom_true_scale: A nested list with [range, container_count].
+#       For example : [[5,1], [10,3], [-1,5]] means,
+#       0<= no_of_req < 5 -- container_count = 1
+#       5<= no_of_req < 10 -- container_count = 3
+#       10 <= no_of_req < infinity -- container_count = 5
+#   7. custom_false_scale: by default for every 20 containers, scale up by 'increase_by'
+#       For example :
+#       0<= no_of_req < 20 -- container_count = 1
+#       20<= no_of_req < 40 -- container_count = 2
+#       40 <= no_of_req < 60 -- container_count = 3
+#       ... so on....
+trigger:
+  metric: no_of_req
+  min_instances: 1
+  max_instances: 10
+  monitor_time: 120
+  custom: True
+  custom_true_scale: [[5, 1], [10, 3], [-1, 5]]
+  custom_false_scale:
+    metric_value: 20
+    increase_by: 1
+
+
+
+

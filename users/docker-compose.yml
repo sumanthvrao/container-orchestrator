@@ -1,0 +1,21 @@
+version: "2"
+
+services:
+  userscont:
+    container_name: userscont
+    restart: always
+    build: ./users
+    image: users:latest
+    ports:
+      - "80:80"
+    links:
+      - mongo
+    depends_on:
+      - mongo
+    environment:
+      WAIT_HOSTS: mongo:27017
+  mongo:
+    container_name: mongo
+    image: mongo
+    ports:
+      - "27017:27017"

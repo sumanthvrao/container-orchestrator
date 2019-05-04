@@ -84,7 +84,9 @@ def api():
 		current_port = (current_port + 1) % container_count
 		print("Serviced by:"+str(current_port))
 		req_count += 1
-		started = True
+		if(started == False):
+			started = True
+			thread_scale.start()
 		path = "http://127.0.0.1:800" +  str(current_port) + "/api/v1/" + str(route)
 		if request.method == "GET":
 			resp = requests.get(url = path, json = request.get_json())
@@ -125,17 +127,20 @@ def scale():
 	global port_list
 	global yaml_parsed_data
 	while(True):
-		while(started == False):
-			print("Did not receive first request")
-			time.sleep(5)
-			continue
+		# while(started == False):
+		# 	print("Did not receive first request")
+		# 	time.sleep(5)
+		# 	continue
+		print("Going to sleep")
+		sleep_time = yaml_parsed_data['trigger']['monitor_time']
+
+		time.sleep(sleep_time)	
 		print("Current req_count: ", req_count)
 		print("Current container count: ", len(containers_list))
 
 		min_container = yaml_parsed_data['trigger']['min_instances']
 		max_container = yaml_parsed_data['trigger']['max_instances']
 
-		sleep_time = yaml_parsed_data['trigger']['monitor_time']
 		if(yaml_parsed_data['trigger']['custom']):
 			ordered_list = sorted(yaml_parsed_data['trigger']['custom_true_scale'])
 			custom = False
@@ -165,21 +170,21 @@ def scale():
 		else:
 
 			if req_count % metric == 0:
-				required = req_count/metric + 1
+				required = req_count//metric + 1
 			else:
 				required = math.ceil(req_count/metric)
 			required = required * inc_by
 
 		print("Required: ",required)
-		if required < max_container:
+		print("Limit", max_container, min_container)
+		if required < min_container:
 			scale_up_or_down(min_container)
 		elif required > max_container:
 			scale_up_or_down(max_container)
-
+		else:
+			scale_up_or_down(int(required))
 		# Resetting req_count
 		req_count = 0
-		print("Going to sleep")
-		time.sleep(sleep_time)
 
 def scale_up_or_down(required):
 	global req_count
@@ -188,24 +193,35 @@ def scale_up_or_down(required):
 	global containers_list
 	global port_list
 	global yaml_parsed_data
+	print("Scale up_down", required, len(containers_list))
+
 	if (required > len(containers_list)):
 		print("Creating")
 		diff = required - len(containers_list)
-
+		new_port = max(port_list)+1
 		for i in range(0,diff):
-			new_port = max(port_list)+1
+			
 			thread_create_container = threading.Thread(target = create_container , args=(new_port,) )
 			thread_create_container.start()
+			new_port+=1
 			print("Back to scale check")
 
 	elif (required < len(containers_list)):
 		print("Deleting")
 
 		diff = len(containers_list) - required
+
+		def custom_sort(obj):
+			del_port_dict = low_client.inspect_container(obj.id)['NetworkSettings']['Ports']
+			return int(list(del_port_dict.values())[0][0]['HostPort'])
+
+		containers_list.sort(key=custom_sort)
 		for i in range (0,diff):
-			del_cont = containers_list[0]
+
+			del_cont = containers_list[-1]
 			del_port_dict = low_client.inspect_container(del_cont.id)['NetworkSettings']['Ports']
 			del_port = int(list(del_port_dict.values())[0][0]['HostPort'])
+
 			print("Deleting", del_cont.short_id, del_port)
 			containers_list.remove(del_cont)
 			port_list.remove(del_port)
@@ -224,7 +240,7 @@ thread_health_check.start()
 
 thread_scale = threading.Thread(target = scale)
 thread_scale.setDaemon(True)
-thread_scale.start()
+# thread_scale.start()
 
 try:
     while True:

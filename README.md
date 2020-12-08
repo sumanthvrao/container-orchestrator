@@ -1,3 +1,4 @@
-# container_orchestration
+# Container Orchestrator
 
-A container orchestrator that can perform load balancing, fault tolerance, and auto-scaling. Built using python.
+A demo website built on top of a container orchestrator that can perform load balancing, is fault tolerance, and can auto-scale based on parameters.
+
